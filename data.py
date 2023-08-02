@@ -38,6 +38,7 @@ class CarFollowingData(
                 self.acc_metric_list.append(acc_coef)
         acc_metric = np.array(self.acc_metric_list)
         self.acc_metric_max = np.quantile(acc_metric, 0.85)
+        print(self.data.shape[0])
 
     def __len__(self):
         return self.data.shape[0]
@@ -91,11 +92,16 @@ class CarFollowingData(
             historical_input_list.append(item['historical_input'])
             future_lv_list.append(item['future_lv'])
             future_sv_list.append(item['future_sv'])
-            style_metric_list.append(['style_metric'])
-        historical_input_batch = torch.Tensor(np.array(historical_input_list)).type(torch.long)
-        future_lv_batch = torch.Tensor(np.array(future_lv_list)).type(torch.long)
-        future_sv_batch = torch.Tensor(np.array(future_sv_list)).type(torch.long)
-        style_metric_batch = torch.Tensor(np.array(style_metric_list)).type(torch.long)
+            style_metric_list.append(item['style_metric'])
+        historical_input_batch = torch.Tensor(np.array(historical_input_list)).type(torch.float)
+        future_lv_batch = torch.Tensor(np.array(future_lv_list)).type(torch.float)
+        future_sv_batch = torch.Tensor(np.array(future_sv_list)).type(torch.float)
+        style_metric_batch = torch.Tensor(np.array(style_metric_list)).type(torch.float)
+
+        future_lv_batch = torch.unsqueeze(future_lv_batch, -1)
+        future_sv_batch = torch.unsqueeze(future_sv_batch, -1)
+        style_metric_batch = torch.unsqueeze(style_metric_batch, -1)
+
         assert historical_input_batch.shape[0] == batch_size
         assert future_lv_batch.shape[0] == batch_size
         assert future_sv_batch.shape[0] == batch_size
