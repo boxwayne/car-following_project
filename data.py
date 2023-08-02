@@ -38,7 +38,6 @@ class CarFollowingData(
                 self.acc_metric_list.append(acc_coef)
         acc_metric = np.array(self.acc_metric_list)
         self.acc_metric_max = np.quantile(acc_metric, 0.85)
-        print(self.data.shape[0])
 
     def __len__(self):
         return self.data.shape[0]
