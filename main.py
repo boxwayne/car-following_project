@@ -59,7 +59,7 @@ for epoch in tqdm(range(num_epochs)):
     train_loss_his.append(train_loss)
     print("Epoch: {0}| Train Loss: {1:.7f}".format(epoch + 1, train_loss))
 
-    model.eval()
+    CF_model.eval()
     validation_errors = []
 
     for i, item in enumerate(validation_dataloader):
