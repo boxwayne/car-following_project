@@ -38,9 +38,17 @@ class CarFollowingData(
                 self.acc_metric_list.append(acc_coef)
         acc_metric = np.array(self.acc_metric_list)
         self.acc_metric_max = np.quantile(acc_metric, 0.85)
+        self.acc_metric_min = np.quantile(acc_metric, 0.15)
+        assert self.acc_metric_min < self.acc_metric_max
 
     def __len__(self):
         return self.data.shape[0]
+
+    def get_style_metric_max(self):
+        return self.acc_metric_max
+
+    def get_style_metric_min(self):
+        return self.acc_metric_min
 
     def calculate_acc_metric(self, speed_trajectory):
         traject_len = speed_trajectory.shape[0]
@@ -54,7 +62,7 @@ class CarFollowingData(
             coef_segment = std_segment / mean_segment
             acc_metric_list.append(coef_segment)
         acc_metric = np.mean(acc_metric_list)
-        normalized_acc_metric = acc_metric / self.acc_metric_max
+        normalized_acc_metric = (acc_metric - self.acc_metric_min) / (self.acc_metric_max - self.acc_metric_min)
         return normalized_acc_metric
 
     def __getitem__(self, idx: int):
@@ -112,5 +120,7 @@ class CarFollowingData(
 
 def getDataLoader(data_path, batch_size, historical_len, predict_len, max_len, Ts, rolling_window):
     dataset = CarFollowingData(data_path, historical_len, predict_len, max_len, Ts, rolling_window)
+    style_metric_max = dataset.get_style_metric_max()
+    style_metric_min = dataset.get_style_metric_min()
     dataloader = DataLoader(dataset, batch_size, shuffle=True, collate_fn=CarFollowingData.collate_fn, drop_last=True)
-    return dataloader
+    return dataloader, style_metric_max, style_metric_min

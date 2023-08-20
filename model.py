@@ -20,7 +20,7 @@ class Model(nn.Module):
             encoding_vector.append(torch.cos(2. ** i * pi * value))
         encoding_output = torch.cat(encoding_vector, 1)
         assert encoding_output.shape[0] == value.shape[0]
-        assert encoding_output.shape[1] == 1 + 2 * num_freq
+        assert encoding_output.shape[1] == self.dim_freq_embedding
         return encoding_output
 
     def forward(self, states_histo, value_style, lead_speed):

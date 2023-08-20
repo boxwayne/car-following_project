@@ -3,7 +3,8 @@ from torch import nn
 
 
 class MLP(nn.Module):
-    def __init__(self, num_layers, layer_dim, pre_batchnorm=False, pre_activation=False, batch_norm=True):  # num_layers: int; layer_dim: list; num_layers = len(layer_dim) - 1
+    def __init__(self, num_layers, layer_dim, pre_batchnorm=False, pre_activation=False,
+                 batch_norm=True):  # num_layers: int; layer_dim: list; num_layers = len(layer_dim) - 1
         super().__init__()
         modules = []
         assert num_layers > 0
@@ -90,7 +91,8 @@ class Encoder(nn.Module):
     def __init__(self, dim_in, dim_hidden):
         super().__init__()
         self.lstm = nn.LSTM(dim_in, dim_hidden, batch_first=True)
-        self.mcg = MCGBlock(2, [3, 3], [[dim_hidden, dim_hidden * 2, dim_hidden * 2, dim_hidden], [dim_hidden, dim_hidden * 2, dim_hidden * 2, dim_hidden]])
+        self.mcg = MCGBlock(2, [3, 3], [[dim_hidden, dim_hidden * 2, dim_hidden * 2, dim_hidden],
+                                        [dim_hidden, dim_hidden * 2, dim_hidden * 2, dim_hidden]])
         self.dim_in = dim_in
         self.dim_out = dim_hidden
 
@@ -104,7 +106,8 @@ class Decoder(nn.Module):
     def __init__(self, dim_context):
         super().__init__()
         self.lstm = nn.LSTM(1, dim_context, batch_first=True)
-        self.mcg = MCGBlock(2, [3, 3], [[dim_context, dim_context * 2, dim_context * 2, dim_context], [dim_context, dim_context * 2, dim_context * 2, dim_context]])
+        self.mcg = MCGBlock(2, [3, 3], [[dim_context, dim_context * 2, dim_context * 2, dim_context],
+                                        [dim_context, dim_context * 2, dim_context * 2, dim_context]])
         self.mlp = MLP(3, [dim_context, dim_context * 2, dim_context, 1])
 
     def forward(self, s, c):  # s.size = (batch_size, num_time_step, 1), c.size = (batch_size, dim_context)
@@ -115,3 +118,22 @@ class Decoder(nn.Module):
         output = self.mlp(torch.reshape(h_out, (-1, h_out.shape[-1])))
         output = torch.reshape(output, (h_out.shape[0], h_out.shape[1], -1))
         return output
+
+
+def styleMetricEvaluation(speed_trajectory_batch, rolling_window, Ts,
+                          acc_metric_max, acc_metric_min):  # speed_trajectory_batch.size() = (batch_size, num_time_step, 1)
+    speed_trajectory = torch.squeeze(speed_trajectory_batch)
+    traject_len = speed_trajectory.shape[1]
+    assert traject_len >= rolling_window
+    acc_metric_list = []
+    for i in range(traject_len - rolling_window + 1):
+        segment_speed = speed_trajectory[:, i:i + rolling_window]
+        segment_acc = torch.abs(torch.diff(segment_speed, dim=1) / Ts)
+        mean_segment = torch.mean(segment_acc, dim=1, keepdim=True)
+        std_segment = torch.std(segment_acc, dim=1, keepdim=True)
+        coef_segment = std_segment / mean_segment
+        acc_metric_list.append(coef_segment)
+
+    acc_metric = torch.mean(torch.cat(acc_metric_list, dim=1), dim=1, keepdim=True)
+    normalized_acc_metric = (acc_metric - acc_metric_min * torch.ones(acc_metric.shape, requires_grad=True)) / (acc_metric_max - acc_metric_min)
+    return normalized_acc_metric
