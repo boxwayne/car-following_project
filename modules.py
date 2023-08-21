@@ -70,7 +70,7 @@ class MCGBlock(nn.Module):
     def forward(self, s, c=None, return_s=False):
         assert s.size(dim=2) == self.dim_in
         if c is None:
-            c = torch.ones(s.size(dim=0), s.size(dim=2), requires_grad=True)
+            c = torch.ones(s.size(dim=0), s.size(dim=2), requires_grad=True).cuda()
         assert torch.isfinite(s).all()
         assert torch.isfinite(c).all()
         running_mean_s, running_mean_c = s, c
@@ -135,7 +135,7 @@ def styleMetricEvaluation(speed_trajectory_batch, rolling_window, Ts,
         acc_metric_list.append(coef_segment)
 
     acc_metric = torch.mean(torch.cat(acc_metric_list, dim=1), dim=1, keepdim=True)
-    normalized_acc_metric = (acc_metric - acc_metric_min * torch.ones(acc_metric.shape, requires_grad=True)) / (acc_metric_max - acc_metric_min)
+    normalized_acc_metric = (acc_metric - acc_metric_min * torch.ones(acc_metric.shape, requires_grad=True).cuda()) / (acc_metric_max - acc_metric_min)
     return normalized_acc_metric
 
 #def spacingCalculation(self_speed_trajectory, lead_speed_trajectory, initial_spacing, Ts):

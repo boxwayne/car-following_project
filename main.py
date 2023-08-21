@@ -83,7 +83,7 @@ for epoch in tqdm(range(num_epochs)):
         generative_style_metric_errors = []
         for value in style_metric_range_eval:
             designated_style_metric = value * torch.ones(driving_style_metric.shape, requires_grad=True)
-            generative_self_speed = CF_model(historical_CF_state, designated_style_metric, future_lead_speed)
+            generative_self_speed = CF_model(historical_CF_state, designated_style_metric, future_lead_speed).cuda()
             generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts,
                                                                     validation_acc_metric_max,
                                                                     validation_acc_metric_min)
@@ -119,7 +119,7 @@ for i, item in enumerate(test_dataloader):
     reproduced_output_error = reproduced_trajectory_error + reproduced_style_metric_error
     generative_style_metric_errors = []
     for value in style_metric_range_eval:
-        designated_style_metric = value * torch.ones(driving_style_metric.shape, requires_grad=True)
+        designated_style_metric = value * torch.ones(driving_style_metric.shape, requires_grad=True).cuda()
         generative_self_speed = CF_model(historical_CF_state, designated_style_metric, future_lead_speed)
         generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts,
                                                                 test_acc_metric_max, test_acc_metric_min)
