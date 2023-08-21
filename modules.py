@@ -138,6 +138,6 @@ def styleMetricEvaluation(speed_trajectory_batch, rolling_window, Ts,
     normalized_acc_metric = (acc_metric - acc_metric_min * torch.ones(acc_metric.shape, requires_grad=True)) / (acc_metric_max - acc_metric_min)
     return normalized_acc_metric
 
-def spacingCalculation(self_speed_trajectory, lead_speed_trajectory, initial_spacing, Ts):
-    rel_speed_trajectory = lead_speed_trajectory - self_speed_trajectory
+#def spacingCalculation(self_speed_trajectory, lead_speed_trajectory, initial_spacing, Ts):
+    #rel_speed_trajectory = lead_speed_trajectory - self_speed_trajectory
 
