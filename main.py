@@ -6,9 +6,9 @@ from tqdm import tqdm
 import model
 import data
 
-train_dataset_path = "/home/bld/car-following_zijun/car-following_project"
-validation_dataset_path = "/home/bld/car-following_zijun/car-following_project"
-test_dataset_path = "/home/bld/car-following_zijun/car-following_project"
+train_dataset_path = "/home/bld/Desktop/HighD/train_data"
+validation_dataset_path = "/home/bld/Desktop/HighD/val_data"
+test_dataset_path = "/home/bld/Desktop/HighD/test_data"
 batch_size = 16
 num_epochs = 50
 historical_len = 150        # number of time step in historical car-following states
