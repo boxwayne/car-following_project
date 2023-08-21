@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-
+import numpy as np
 
 class MLP(nn.Module):
     def __init__(self, num_layers, layer_dim, pre_batchnorm=False, pre_activation=False,
@@ -137,3 +137,7 @@ def styleMetricEvaluation(speed_trajectory_batch, rolling_window, Ts,
     acc_metric = torch.mean(torch.cat(acc_metric_list, dim=1), dim=1, keepdim=True)
     normalized_acc_metric = (acc_metric - acc_metric_min * torch.ones(acc_metric.shape, requires_grad=True)) / (acc_metric_max - acc_metric_min)
     return normalized_acc_metric
+
+def spacingCalculation(self_speed_trajectory, lead_speed_trajectory, initial_spacing, Ts):
+    rel_speed_trajectory = lead_speed_trajectory - self_speed_trajectory
+

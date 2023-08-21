@@ -37,8 +37,8 @@ class CarFollowingData(
                 acc_coef = acc_std / acc_mean
                 self.acc_metric_list.append(acc_coef)
         acc_metric = np.array(self.acc_metric_list)
-        self.acc_metric_max = np.quantile(acc_metric, 0.85)
-        self.acc_metric_min = np.quantile(acc_metric, 0.15)
+        self.acc_metric_max = np.quantile(acc_metric, 0.9)
+        self.acc_metric_min = np.quantile(acc_metric, 0.1)
         assert self.acc_metric_min < self.acc_metric_max
 
     def __len__(self):
