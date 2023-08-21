@@ -11,20 +11,25 @@ validation_dataset_path = "/home/bld/Desktop/HighD/val_data"
 test_dataset_path = "/home/bld/Desktop/HighD/test_data"
 batch_size = 16
 num_epochs = 50
-historical_len = 150        # number of time step in historical car-following states
-predict_len = 150            # number of time step in predicted future speed profile of self vehicle
+historical_len = 150  # number of time step in historical car-following states
+predict_len = 150  # number of time step in predicted future speed profile of self vehicle
 max_len = 375
-rolling_window = 125         # number of time step of a given speed trajectory to evaluate the style metric
-Ts = 0.04                   # sampling time step of data
-train_dataloader, train_acc_metric_max, train_acc_metric_min = data.getDataLoader(train_dataset_path, batch_size, historical_len, predict_len, max_len, Ts, rolling_window)
-validation_dataloader, validation_acc_metric_max, validation_acc_metric_min = data.getDataLoader(validation_dataset_path, batch_size, historical_len, predict_len, max_len, Ts, rolling_window)
-test_dataloader, test_acc_metric_max, test_acc_metric_min = data.getDataLoader(test_dataset_path, batch_size, historical_len, predict_len, max_len, Ts, rolling_window)
+rolling_window = 125  # number of time step of a given speed trajectory to evaluate the style metric
+Ts = 0.04  # sampling time step of data
+train_dataloader, train_acc_metric_max, train_acc_metric_min = data.getDataLoader(train_dataset_path, batch_size,
+                                                                                  historical_len, predict_len, max_len,
+                                                                                  Ts, rolling_window)
+validation_dataloader, validation_acc_metric_max, validation_acc_metric_min = data.getDataLoader(
+    validation_dataset_path, batch_size, historical_len, predict_len, max_len, Ts, rolling_window)
+test_dataloader, test_acc_metric_max, test_acc_metric_min = data.getDataLoader(test_dataset_path, batch_size,
+                                                                               historical_len, predict_len, max_len, Ts,
+                                                                               rolling_window)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 learning_rate = 1e-3
-save = f'trained_model.pt'
-dim_CF_state = 3   # spacing, self_v, rel_v
+saved_model_path = "/home/bld/car-following_zijun/saved_model/best_model.pt"
+dim_CF_state = 3  # spacing, self_v, rel_v
 dim_hidden_state = 64
 num_frequency_encoding = 15
 CF_model = model.Model(dim_CF_state, dim_hidden_state, num_frequency_encoding).to(device)
@@ -48,8 +53,10 @@ for epoch in tqdm(range(num_epochs)):
         future_lead_speed = item['future_lv'].to(device)
         future_self_speed = item['future_sv'].to(device)
         predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
-        predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts, train_acc_metric_max, train_acc_metric_min)
-        loss = criterion(future_self_speed, predict_self_speed) + style_metric_loss_weight * criterion(driving_style_metric, predict_style_metric)
+        predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts,
+                                                             train_acc_metric_max, train_acc_metric_min)
+        loss = criterion(future_self_speed, predict_self_speed) + style_metric_loss_weight * criterion(
+            driving_style_metric, predict_style_metric)
         model_optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(CF_model.parameters(), 0.25)
@@ -69,15 +76,19 @@ for epoch in tqdm(range(num_epochs)):
         future_self_speed = item['future_sv'].to(device)
         predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
         reproduced_trajectory_error = criterion(future_self_speed, predict_self_speed)
-        predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts, validation_acc_metric_max, validation_acc_metric_min)
+        predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts,
+                                                             validation_acc_metric_max, validation_acc_metric_min)
         reproduced_style_metric_error = style_metric_loss_weight * criterion(driving_style_metric, predict_style_metric)
         reproduced_output_error = reproduced_trajectory_error + reproduced_style_metric_error
         generative_style_metric_errors = []
         for value in style_metric_range_eval:
             designated_style_metric = value * torch.ones(driving_style_metric.shape, requires_grad=True)
             generative_self_speed = CF_model(historical_CF_state, designated_style_metric, future_lead_speed)
-            generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts, validation_acc_metric_max, validation_acc_metric_min)
-            generative_style_metric_error = style_metric_loss_weight * criterion(designated_style_metric, generative_style_metric)
+            generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts,
+                                                                    validation_acc_metric_max,
+                                                                    validation_acc_metric_min)
+            generative_style_metric_error = style_metric_loss_weight * criterion(designated_style_metric,
+                                                                                 generative_style_metric)
             generative_style_metric_errors.append(generative_style_metric_error.item())
         generative_style_metric_averaged_error = np.mean(generative_style_metric_errors)
         total_error = reproduced_output_error + generative_style_metric_averaged_error
@@ -85,15 +96,13 @@ for epoch in tqdm(range(num_epochs)):
     validation_error = np.mean(validation_errors)
     if best_validation_error is None or best_validation_error > validation_error:
         best_validation_error = validation_error
-        with open(save, 'wb') as f:
-            torch.save(model, f)
+        torch.save(model, saved_model_path)
 
     validation_error_his.append(validation_error)
     print("Epoch: {0}| Validation error: {1:.7f}".format(epoch + 1, validation_error))
 
 
-with open(f'{save}', 'rb') as f:
-    test_model = torch.load(f).to(device)
+test_model = torch.load(saved_model_path).to(device)
 test_model.eval()
 test_errors = []
 
@@ -104,19 +113,20 @@ for i, item in enumerate(test_dataloader):
     future_self_speed = item['future_sv'].to(device)
     predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
     reproduced_trajectory_error = criterion(future_self_speed, predict_self_speed)
-    predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts, test_acc_metric_max, test_acc_metric_min)
+    predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts, test_acc_metric_max,
+                                                         test_acc_metric_min)
     reproduced_style_metric_error = style_metric_loss_weight * criterion(driving_style_metric, predict_style_metric)
     reproduced_output_error = reproduced_trajectory_error + reproduced_style_metric_error
     generative_style_metric_errors = []
     for value in style_metric_range_eval:
         designated_style_metric = value * torch.ones(driving_style_metric.shape, requires_grad=True)
         generative_self_speed = CF_model(historical_CF_state, designated_style_metric, future_lead_speed)
-        generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts, test_acc_metric_max, test_acc_metric_min)
-        generative_style_metric_error = style_metric_loss_weight * criterion(designated_style_metric, generative_style_metric)
+        generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts,
+                                                                test_acc_metric_max, test_acc_metric_min)
+        generative_style_metric_error = style_metric_loss_weight * criterion(designated_style_metric,
+                                                                             generative_style_metric)
         generative_style_metric_errors.append(generative_style_metric_error.item())
     generative_style_metric_averaged_error = np.mean(generative_style_metric_errors)
     total_error = reproduced_output_error + generative_style_metric_averaged_error
     test_errors.append(total_error)
 test_error = np.mean(test_errors)
-
-
