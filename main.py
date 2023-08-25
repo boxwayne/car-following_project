@@ -113,8 +113,8 @@ for epoch in tqdm(range(num_epochs)):
                                                                                  generative_style_metric)
             generative_style_metric_errors.append(generative_style_metric_error.item())
         generative_style_metric_averaged_error = np.mean(generative_style_metric_errors)
-        total_error = reproduced_output_error + generative_style_metric_averaged_error
-        validation_errors.append(total_error.item())
+        total_error = reproduced_output_error.item() + generative_style_metric_averaged_error
+        validation_errors.append(total_error)
     validation_error = np.mean(validation_errors)
     if best_validation_error is None or best_validation_error > validation_error:
         best_validation_error = validation_error
@@ -160,7 +160,7 @@ for i, item in enumerate(test_dataloader):
                                                                              generative_style_metric)
         generative_style_metric_errors.append(generative_style_metric_error.item())
     generative_style_metric_averaged_error = np.mean(generative_style_metric_errors)
-    total_error = reproduced_output_error + generative_style_metric_averaged_error
-    test_errors.append(total_error.item())
+    total_error = reproduced_output_error.item() + generative_style_metric_averaged_error
+    test_errors.append(total_error)
 test_error = np.mean(test_errors)
 print('test_error: {0:.7f}'.format(test_error))
