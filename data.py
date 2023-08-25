@@ -7,7 +7,8 @@ from torch.utils.data import Dataset, DataLoader
 class CarFollowingData(
     Dataset):  # raw_data.size = (num_event, dim_state, num_time_step)  states:(spacing, self_speed, relative_speed, lead_speed)
     def __init__(self, data_path, historical_len, predict_len, max_len, Ts, rolling_window):
-        self.files = os.listdir(data_path)
+        #self.files = os.listdir(data_path)
+        print('dataset initializing...')
         self.max_len = max_len
         self.historical_len = historical_len
         self.predict_len = predict_len
@@ -16,10 +17,10 @@ class CarFollowingData(
         self.raw_data_list = []
         self.data_list = []
         self.acc_metric_list = []
-        for f in self.files:
-            if f.endswith(".npy"):
-                self.raw_data_list.append(np.load(os.path.join(data_path, f)))
-        self.raw_data = np.concatenate(self.raw_data_list, axis=0)
+        #for f in self.files:
+        #    if f.endswith(".npy"):
+        #        self.raw_data_list.append(np.load(os.path.join(data_path, f)))
+        self.raw_data = np.load(data_path)
         if self.raw_data.shape[2] > max_len:
             self.raw_data = self.raw_data[:, :, :max_len]
         assert historical_len + predict_len <= self.raw_data.shape[2]
@@ -40,6 +41,9 @@ class CarFollowingData(
         self.acc_metric_max = np.quantile(acc_metric, 0.9)
         self.acc_metric_min = np.quantile(acc_metric, 0.1)
         assert self.acc_metric_min < self.acc_metric_max
+        print('number of events: {0}, number of states: {1}, number of time steps: {2}'.format(self.data.shape[0], self.data.shape[1], self.data.shape[2]))
+        print('style metric max: {0:.7f}, min: {1:.7f}'.format(self.acc_metric_max, self.acc_metric_min))
+        print('dataset loaded successfully')
 
     def __len__(self):
         return self.data.shape[0]

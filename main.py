@@ -47,12 +47,23 @@ print("---")
 for epoch in tqdm(range(num_epochs)):
     train_losses = []
     CF_model.train()
+    print('training...')
     for i, item in enumerate(train_dataloader):
+        if i % 10000 == 0:
+            print('epoch: {0}, batch: {1}'.format(epoch, i))
         historical_CF_state = item['historical_input'].to(device)
         driving_style_metric = item['style_metric'].to(device)
         future_lead_speed = item['future_lv'].to(device)
         future_self_speed = item['future_sv'].to(device)
-        predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+        try:
+            predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+        except RuntimeError as exception:
+            if "out of memory" in str(exception):
+                print('WARNING: out of memory')
+                if hasattr(torch.cuda, 'empty_cache'):
+                    torch.cuda.empty_cache()
+                else:
+                    raise exception
         predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts,
                                                              train_acc_metric_max, train_acc_metric_min)
         loss = criterion(future_self_speed, predict_self_speed) + style_metric_loss_weight * criterion(
@@ -69,12 +80,23 @@ for epoch in tqdm(range(num_epochs)):
     CF_model.eval()
     validation_errors = []
 
+    print('evaluating...')
     for i, item in enumerate(validation_dataloader):
+        if i % 8000 == 0:
+            print('epoch: {0}, batch: {1}'.format(epoch, i))
         historical_CF_state = item['historical_input'].to(device)
         driving_style_metric = item['style_metric'].to(device)
         future_lead_speed = item['future_lv'].to(device)
         future_self_speed = item['future_sv'].to(device)
-        predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+        try:
+            predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+        except RuntimeError as exception:
+            if "out of memory" in str(exception):
+                print('WARNING: out of memory')
+                if hasattr(torch.cuda, 'empty_cache'):
+                    torch.cuda.empty_cache()
+                else:
+                    raise exception
         reproduced_trajectory_error = criterion(future_self_speed, predict_self_speed)
         predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts,
                                                              validation_acc_metric_max, validation_acc_metric_min)
@@ -92,11 +114,11 @@ for epoch in tqdm(range(num_epochs)):
             generative_style_metric_errors.append(generative_style_metric_error.item())
         generative_style_metric_averaged_error = np.mean(generative_style_metric_errors)
         total_error = reproduced_output_error + generative_style_metric_averaged_error
-        validation_errors.append(total_error)
+        validation_errors.append(total_error.item())
     validation_error = np.mean(validation_errors)
     if best_validation_error is None or best_validation_error > validation_error:
         best_validation_error = validation_error
-        torch.save(model, saved_model_path)
+        torch.save(CF_model, saved_model_path)
 
     validation_error_his.append(validation_error)
     print("Epoch: {0}| Validation error: {1:.7f}".format(epoch + 1, validation_error))
@@ -106,12 +128,23 @@ test_model = torch.load(saved_model_path).to(device)
 test_model.eval()
 test_errors = []
 
+print('testing...')
 for i, item in enumerate(test_dataloader):
+    if i % 8000 == 0:
+        print('batch: {0}'.format(i))
     historical_CF_state = item['historical_input'].to(device)
     driving_style_metric = item['style_metric'].to(device)
     future_lead_speed = item['future_lv'].to(device)
     future_self_speed = item['future_sv'].to(device)
-    predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+    try:
+        predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+    except RuntimeError as exception:
+        if "out of memory" in str(exception):
+            print('WARNING: out of memory')
+            if hasattr(torch.cuda, 'empty_cache'):
+                torch.cuda.empty_cache()
+            else:
+                raise exception
     reproduced_trajectory_error = criterion(future_self_speed, predict_self_speed)
     predict_style_metric = modules.styleMetricEvaluation(predict_self_speed, rolling_window, Ts, test_acc_metric_max,
                                                          test_acc_metric_min)
@@ -128,5 +161,6 @@ for i, item in enumerate(test_dataloader):
         generative_style_metric_errors.append(generative_style_metric_error.item())
     generative_style_metric_averaged_error = np.mean(generative_style_metric_errors)
     total_error = reproduced_output_error + generative_style_metric_averaged_error
-    test_errors.append(total_error)
+    test_errors.append(total_error.item())
 test_error = np.mean(test_errors)
+print('test_error: {0:.7f}'.format(test_error))
