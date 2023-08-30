@@ -137,7 +137,7 @@ for i, item in enumerate(test_dataloader):
     future_lead_speed = item['future_lv'].to(device)
     future_self_speed = item['future_sv'].to(device)
     try:
-        predict_self_speed = CF_model(historical_CF_state, driving_style_metric, future_lead_speed)
+        predict_self_speed = test_model(historical_CF_state, driving_style_metric, future_lead_speed)
     except RuntimeError as exception:
         if "out of memory" in str(exception):
             print('WARNING: out of memory')
@@ -153,7 +153,7 @@ for i, item in enumerate(test_dataloader):
     generative_style_metric_errors = []
     for value in style_metric_range_eval:
         designated_style_metric = value * torch.ones(driving_style_metric.shape, requires_grad=True).cuda()
-        generative_self_speed = CF_model(historical_CF_state, designated_style_metric, future_lead_speed)
+        generative_self_speed = test_model(historical_CF_state, designated_style_metric, future_lead_speed)
         generative_style_metric = modules.styleMetricEvaluation(generative_self_speed, rolling_window, Ts,
                                                                 test_acc_metric_max, test_acc_metric_min)
         generative_style_metric_error = style_metric_loss_weight * criterion(designated_style_metric,

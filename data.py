@@ -54,6 +54,9 @@ class CarFollowingData(
     def get_style_metric_min(self):
         return self.acc_metric_min
 
+    def get_style_metric_list(self):
+        return self.acc_metric_list
+
     def calculate_acc_metric(self, speed_trajectory):
         traject_len = speed_trajectory.shape[0]
         assert traject_len >= self.rolling_window
