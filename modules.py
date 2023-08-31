@@ -123,7 +123,9 @@ class Decoder(nn.Module):
 def styleMetricEvaluation(speed_trajectory_batch, rolling_window, Ts,
                           acc_metric_max, acc_metric_min):  # speed_trajectory_batch.size() = (batch_size, num_time_step, 1)
     speed_trajectory = torch.squeeze(speed_trajectory_batch)
-    traject_len = speed_trajectory.shape[-1]
+    if len(speed_trajectory.shape) < 2:   # in case where batch_size == 1
+        speed_trajectory = torch.unsqueeze(speed_trajectory, 0)
+    traject_len = speed_trajectory.shape[1]
     assert traject_len >= rolling_window
     acc_metric_list = []
     for i in range(traject_len - rolling_window + 1):
